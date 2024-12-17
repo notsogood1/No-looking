@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Game Site</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; text-align: center; margin: 0; padding: 0; }
+        input, button { padding: 10px; margin: 10px; border-radius: 5px; border: 1px solid #ddd; }
+        button { background-color: #28a745; color: white; border: none; cursor: pointer; }
+        #game-section { display: none; }
+        #message { color: red; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <!-- Login Section -->
+    <div id="login-section">
+        <h1>Login</h1>
+        <input type="text" id="username" placeholder="Username" required>
+        <input type="password" id="password" placeholder="Password" required>
+        <button onclick="checkLogin()">Login</button>
+        <div id="message"></div>
+    </div>
+
+    <!-- Game Section (Hidden initially) -->
+    <div id="game-section">
+        <h2>Welcome to the Gaming Section!</h2>
+        <p>Contact: 102751@psdschools.org</p>
+        <div id="games-container"></div>
+    </div>
+
+    <script>
+        // Obfuscated games list (Base64 encoded)
+        const encryptedGames = "W3sibmFtZSI6IlB1ZyBpbiBhIFJ1ZyIsInVybCI6Imh0dHBzOi8vcHVnaW5hcnVnLmNvbSJ9LHsibmFtZSI6Ik5lbydzIEdhbWUiLCJ1cmwiOiJodHRwczovL3NjcmF0Y2gubWl0LmVkdS9wcm9qZWN0cy85MzkxMjMxNTEvIn0seyJuYW1lIjoiUHJveHkiLCJ1cmwiOiJodHRwczovL3Rpbnl1cmwuY29tL21pdC9ubz9vcmlnaW5hbD0yIn1d";
+
+        // Precomputed double-hashed credentials (SHA-3 hashes)
+        const hashedUsername = "e90a6eaf48dc8e728244e4c5e1209b248cf17db8e5e1f45e3c96df20b40f11e3";
+        const hashedPassword = "34d2a6e84584e90b2953af4ad54e2e65dc7ea3eb2633f38be3dc67a76039c8c6";
+
+        // Function to hash input using SHA-3 (double-hash)
+        async function doubleHash(input) {
+            const encoder = new TextEncoder();
+            try {
+                let hashBuffer = await crypto.subtle.digest("SHA-3-512", encoder.encode(input)); // First hash
+                hashBuffer = await crypto.subtle.digest("SHA-3-512", hashBuffer); // Second hash
+                return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+            } catch (error) {
+                console.error("Hashing failed: ", error);
+                return null;
+            }
+        }
+
+        // Function to handle the login and authentication
+        async function checkLogin() {
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+
+            // Validate input fields
+            if (!username || !password) {
+                document.getElementById("message").innerText = "Please fill in both username and password.";
+                return;
+            }
+
+            // Hash username and password
+            const userHash = await doubleHash(username);
+            const passHash = await doubleHash(password);
+
+            // Log the generated hashes for debugging purposes
+            console.log(`Generated username hash: ${userHash}`);
+            console.log(`Generated password hash: ${passHash}`);
+
+            // If hashing failed, show an error
+            if (!userHash || !passHash) {
+                document.getElementById("message").innerText = "Error hashing data. Please try again.";
+                return;
+            }
+
+            // Validate login against precomputed hashes
+            if (userHash === hashedUsername && passHash === hashedPassword) {
+                document.getElementById("login-section").style.display = "none";
+                document.getElementById("game-section").style.display = "block";
+                loadGames();
+            } else {
+                document.getElementById("message").innerText = "Invalid login. Please try again.";
+            }
+        }
+
+        // Function to decode and display games list after successful login
+        function loadGames() {
+            try {
+                // Decode Base64-encoded games list
+                const games = JSON.parse(atob(encryptedGames));
+                const container = document.getElementById("games-container");
+
+                // Dynamically create and append game links
+                games.forEach(game => {
+                    const link = document.createElement("a");
+                    link.href = game.url;
+                    link.target = "_blank";
+                    link.innerText = game.name;
+                    link.style.display = "block";
+                    link.style.margin = "10px";
+                    container.appendChild(link);
+                });
+            } catch (error) {
+                console.error("Error loading games: ", error);
+                document.getElementById("message").innerText = "Error loading games. Please try again later.";
+            }
+        }
+
+        // Optional: Disable right-click and developer tools (can be bypassed)
+        document.addEventListener("contextmenu", event => event.preventDefault()); // Disable right-click
+        document.addEventListener("keydown", event => {
+            if (event.ctrlKey && (event.key === "u" || event.key === "U" || event.key === "i" || event.key === "I")) {
+                alert("Inspecting is disabled!");
+                event.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
